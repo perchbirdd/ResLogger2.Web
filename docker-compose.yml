@@ -1,0 +1,33 @@
+﻿services:
+  web:
+    container_name: rl2_dev
+    image: mcr.microsoft.com/dotnet/sdk:9.0
+    volumes:
+      - ./:/build/
+      - /build/src/bin/
+      - /build/src/obj/
+      - /build/deps/ResLogger2.Common/src/obj/
+      - /build/deps/ResLogger2.Common/src/bin/
+      - ./web_data/:/web_data/
+    working_dir: /build
+    command: dotnet watch run --project src/ResLogger2.Web.csproj
+    ports:
+      - "5103:5103"
+      - "7281:7281"
+    depends_on:
+      - db
+    env_file:
+      - Development.env
+
+  db:
+    image: postgres:14.15-alpine3.21
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data/
+    env_file:
+      - Development.env
+
+volumes:
+  pg_data:
+

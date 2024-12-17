@@ -1,0 +1,6 @@
+src/testing/**/*
+web_data/**/*
+src/bin/**/*
+src/obj/**/*
+deps/ResLogger2.Common/obj/**/*
+deps/ResLogger2.Common/bin/**/*
