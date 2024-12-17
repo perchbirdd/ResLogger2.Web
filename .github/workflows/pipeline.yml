@@ -170,7 +170,7 @@ jobs:
           chmod 700 ~/.ssh
           cat <<EOF >> ~/.ssh/config
           Host ${{ vars.ENV_HOSTNAME }}
-              User user
+              User ${{ vars.ENV_USER }}
               Hostname ${{ vars.ENV_HOSTNAME }}
               StrictHostKeyChecking no
               UserKnownHostsFile=/dev/null
