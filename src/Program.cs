@@ -49,8 +49,10 @@ if (!app.Environment.IsDevelopment())
 }
 else
 {
-	Serilog.Debugging.SelfLog.Enable(TextWriter.Synchronized(Console.Out));
+	
 }
+
+Serilog.Debugging.SelfLog.Enable(TextWriter.Synchronized(Console.Out));
 
 var exportDir = app.Configuration["ExportDirectory"];
 if (!Path.IsPathFullyQualified(exportDir))
