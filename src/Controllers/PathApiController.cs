@@ -16,14 +16,6 @@ public class PathController : Controller
 	{
 		_dbService = dbService;
 		_logger = logger;
-		Console.WriteLine("helfewfefefewfewwffewfewfewfewfewwlo");
-	}
-
-	[HttpGet]
-	[Route("test")]
-	public async Task Test()
-	{
-		Console.WriteLine("TEst!");
 	}
 
 	[HttpPost]
