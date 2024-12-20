@@ -47,6 +47,10 @@ if (!app.Environment.IsDevelopment())
 	app.UseHsts();
 	app.UseHttpsRedirection();
 }
+else
+{
+	Serilog.Debugging.SelfLog.Enable(TextWriter.Synchronized(Console.Out));
+}
 
 var exportDir = app.Configuration["ExportDirectory"];
 if (!Path.IsPathFullyQualified(exportDir))
