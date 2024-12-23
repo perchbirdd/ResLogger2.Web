@@ -44,7 +44,8 @@ builder.Services.AddQuartz(q =>
 builder.Services.AddQuartzServer(q => q.WaitForJobsToComplete = true);
 
 builder.Services.AddOpenTelemetry()
-	.ConfigureResource(resource => resource.AddService(serviceName: "ResLogger2"))
+	.ConfigureResource(resource => resource
+		.AddService(serviceName: "ResLogger2"))
 	.WithMetrics(metrics => metrics
 		.AddAspNetCoreInstrumentation()
 		.AddMeter("Microsoft.AspNetCore.Hosting")
@@ -53,6 +54,11 @@ builder.Services.AddOpenTelemetry()
 	.WithTracing(tracing => tracing
 		.AddEntityFrameworkCoreInstrumentation()
 		.AddAspNetCoreInstrumentation());
+
+var meterProvider = Sdk.CreateMeterProviderBuilder()
+	.AddPrometheusHttpListener(
+		options => options.UriPrefixes = ["http://localhost:9184/"])
+	.Build();
 	
 var app = builder.Build();
 
@@ -87,5 +93,4 @@ app.UseRouting();
 app.UseAuthorization();
 app.MapControllers();
 app.MapRazorPages();
-app.MapPrometheusScrapingEndpoint();
 app.Run();
