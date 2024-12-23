@@ -11,7 +11,6 @@ using Serilog;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, configuration) => configuration.ReadFrom.Configuration(context.Configuration));
-Serilog.Debugging.SelfLog.Enable(TextWriter.Synchronized(Console.Out));
 
 // Add services to the container.
 builder.Services.AddControllers();
