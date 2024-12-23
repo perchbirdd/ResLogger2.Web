@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
+using Prometheus;
 using Quartz;
 using Quartz.AspNetCore;
 using ResLogger2.Common.ServerDatabase;
@@ -38,6 +39,12 @@ builder.Services.AddQuartz(q =>
 });
 builder.Services.AddQuartzServer(q => q.WaitForJobsToComplete = true);
 
+builder.Services.AddMetricServer(options =>
+{
+	options.Url = "/metrics";
+	options.Port = 9184;
+});
+	
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
