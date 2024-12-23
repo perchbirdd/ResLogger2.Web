@@ -41,7 +41,8 @@ builder.Services.AddQuartz(q =>
 });
 builder.Services.AddQuartzServer(q => q.WaitForJobsToComplete = true);
 Sdk.CreateMeterProviderBuilder()
-	.AddPrometheusHttpListener(options => options.UriPrefixes = ["http://localhost:9184/"]);
+	.AddPrometheusHttpListener(options => options.UriPrefixes = ["http://localhost:9184/"])
+	.Build();
 	
 var app = builder.Build();
 
