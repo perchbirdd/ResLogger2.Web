@@ -3,6 +3,8 @@ using Microsoft.Extensions.Diagnostics.Metrics;
 using Microsoft.Extensions.FileProviders;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Quartz;
 using Quartz.AspNetCore;
 using ResLogger2.Common.ServerDatabase;
@@ -40,9 +42,17 @@ builder.Services.AddQuartz(q =>
 		.StartNow());
 });
 builder.Services.AddQuartzServer(q => q.WaitForJobsToComplete = true);
-Sdk.CreateMeterProviderBuilder()
-	.AddPrometheusHttpListener(options => options.UriPrefixes = ["http://localhost:9184/"])
-	.Build();
+
+builder.Services.AddOpenTelemetry()
+	.ConfigureResource(resource => resource.AddService(serviceName: "ResLogger2"))
+	.WithMetrics(metrics => metrics
+		.AddAspNetCoreInstrumentation()
+		.AddMeter("Microsoft.AspNetCore.Hosting")
+		.AddMeter("Microsoft.AspNetCore.Server.Kestrel")
+		.AddPrometheusExporter())
+	.WithTracing(tracing => tracing
+		.AddEntityFrameworkCoreInstrumentation()
+		.AddAspNetCoreInstrumentation());
 	
 var app = builder.Build();
 
@@ -77,4 +87,5 @@ app.UseRouting();
 app.UseAuthorization();
 app.MapControllers();
 app.MapRazorPages();
+app.MapPrometheusScrapingEndpoint();
 app.Run();
