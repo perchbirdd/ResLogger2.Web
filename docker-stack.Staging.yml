@@ -12,6 +12,8 @@
   
   web:
     image: ghcr.io/perchbirdd/reslogger2:staging
+    ports:
+      - "9184:9184"
     volumes:
       - web_data:/web_data/
     env_file:
