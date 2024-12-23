@@ -30,7 +30,6 @@
 
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
-    container_name: node_exporter
     command:
       - '--path.rootfs=/host'
     ports: 
@@ -38,7 +37,16 @@
     restart: unless-stopped
     volumes:
       - '/:/host:ro,rslave'
-
+  
+  pg_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter
+    ports:
+      - "9187:9187"
+    depends_on:
+      - db
+    env_file:
+      - Staging.env
+    
 volumes:
   web_data:
   pg_data:

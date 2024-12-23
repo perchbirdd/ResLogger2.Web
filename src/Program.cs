@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.Metrics;
 using Microsoft.Extensions.FileProviders;
+using OpenTelemetry;
+using OpenTelemetry.Metrics;
 using Quartz;
 using Quartz.AspNetCore;
 using ResLogger2.Common.ServerDatabase;
@@ -37,7 +40,9 @@ builder.Services.AddQuartz(q =>
 		.StartNow());
 });
 builder.Services.AddQuartzServer(q => q.WaitForJobsToComplete = true);
-
+Sdk.CreateMeterProviderBuilder()
+	.AddPrometheusHttpListener(options => options.UriPrefixes = ["http://localhost:9184/"]);
+	
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
