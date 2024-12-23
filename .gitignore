@@ -7,3 +7,4 @@ tmp/
 *.sh
 *.db
 .DS_Store
+/web_data/
