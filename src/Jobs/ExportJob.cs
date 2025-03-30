@@ -50,13 +50,13 @@ public class ExportJob : IJob
 		var exportBase = configuration["ExportDirectory"];
 		if (exportBase == null)
 			throw new Exception("ExportDirectory configuration key must be specified. Export/backup job will not run.");
-		_exportDirectory = new DirectoryInfo(Path.Combine(exportBase, "export"));
+		_exportDirectory = new DirectoryInfo(exportBase);
 		if (!_exportDirectory.Exists)
 			_exportDirectory.Create();
 		var backupBase = configuration["BackupDirectory"];
 		if (backupBase == null)
 			throw new Exception("BackupDirectory configuration key must be specified. Export/backup job will not run.");
-		_backupDirectory = new DirectoryInfo(Path.Combine(backupBase, "backup"));
+		_backupDirectory = new DirectoryInfo(backupBase);
 		if (!_backupDirectory.Exists)
 			_backupDirectory.Create();
 	}
@@ -164,6 +164,7 @@ public class ExportJob : IJob
 	private async Task WriteZipAsync(string path, string entryPath, string contents)
 	{
 		await using var memoryStream = new MemoryStream();
+		
 		{
 			using var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true);
 			var demoFile = archive.CreateEntry(entryPath);
