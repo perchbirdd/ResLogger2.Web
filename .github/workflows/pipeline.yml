@@ -96,6 +96,7 @@ jobs:
     needs: 
       - compile
       - identify
+      - build-push
     environment: ${{ needs.identify.outputs.environment }}
     concurrency: deploy-${{ needs.identify.outputs.environment }} 
     steps:
