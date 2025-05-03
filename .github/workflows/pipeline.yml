@@ -92,7 +92,7 @@ jobs:
 
   create-manifests:
     runs-on: ubuntu-latest
-    needs: build-push
+    needs: [identify, build-push]
     steps:
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -117,7 +117,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: create-manifests
+    needs: [identify, create-manifests]
     environment: ${{ needs.identify.outputs.environment }}
     concurrency: deploy-${{ needs.identify.outputs.environment }}
     steps:
