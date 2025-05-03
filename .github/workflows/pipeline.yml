@@ -49,11 +49,20 @@ jobs:
       environment: ${{ steps.identify_env.outputs.environment }}
       image_tag: ${{ steps.identify_env.outputs.image_tag }}
       
-  build-push-amd64:
-    runs-on: ubuntu-latest
+  build-push:
+    runs-on: ${{ matrix.runner }}
     needs:
       - compile
       - identify
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -72,82 +81,21 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          platforms: linux/amd64
+          platforms: ${{ matrix.platform }}
           file: ./src/Dockerfile
           context: .
-          provenance: false
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ghcr.io/perchbirdd/reslogger2:${{ needs.identify.outputs.image_tag }}-amd64
-            ghcr.io/perchbirdd/reslogger2:${{ github.sha }}-amd64
-
-  build-push-arm64:
-    runs-on: [self-hosted, ARM64]
-    needs:
-      - compile
-      - identify
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
-        with:
-          registry: https://ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          version: latest
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          platforms: linux/arm64
-          file: ./src/Dockerfile
-          context: .
-          provenance: false
-          push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          tags: |
-            ghcr.io/perchbirdd/reslogger2:${{ needs.identify.outputs.image_tag }}-arm64
-            ghcr.io/perchbirdd/reslogger2:${{ github.sha }}-arm64
-
-  create-manifests:
-    runs-on: ubuntu-latest
-    needs: [identify, build-push-amd64, build-push-arm64]
-    steps:
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
-        with:
-          registry: https://ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create SHA manifest and push
-        run: |
-          docker manifest create \
-            ghcr.io/perchbirdd/reslogger2:${{ github.sha }} \
-            --amend ghcr.io/perchbirdd/reslogger2:${{ github.sha }}-amd64 \
-            --amend ghcr.io/perchbirdd/reslogger2:${{ github.sha }}-arm64
-          docker manifest push ghcr.io/perchbirdd/reslogger2:${{ github.sha }}
-      - name: Create ${{ needs.identify.outputs.image_tag }} manifest and push
-        run: |
-          docker manifest create \
-            ghcr.io/perchbirdd/reslogger2:${{ needs.identify.outputs.image_tag }} \
-            --amend ghcr.io/perchbirdd/reslogger2:${{ needs.identify.outputs.image_tag }}-amd64 \
-            --amend ghcr.io/perchbirdd/reslogger2:${{ needs.identify.outputs.image_tag }}-arm64
-          docker manifest push ghcr.io/perchbirdd/reslogger2:${{ needs.identify.outputs.image_tag }}
+            ghcr.io/perchbirdd/reslogger2:${{ needs.identify.outputs.image_tag }}-${{ matrix.arch }}
+            ghcr.io/perchbirdd/reslogger2:${{ github.sha }}-${{ matrix.arch }}
 
   deploy:
     runs-on: ubuntu-latest
     needs: 
       - compile
       - identify
-      - create-manifests
     environment: ${{ needs.identify.outputs.environment }}
     concurrency: deploy-${{ needs.identify.outputs.environment }} 
     steps:
