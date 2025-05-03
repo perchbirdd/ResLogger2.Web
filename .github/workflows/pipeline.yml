@@ -88,8 +88,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ghcr.io/perchbirdd/reslogger2:${{ needs.identify.outputs.image_tag }}-${{ matrix.arch }}
-            ghcr.io/perchbirdd/reslogger2:${{ github.sha }}-${{ matrix.arch }}
+            ghcr.io/perchbirdd/reslogger2:${{ needs.identify.outputs.image_tag }}
+            ghcr.io/perchbirdd/reslogger2:${{ github.sha }}
 
   deploy:
     runs-on: ubuntu-latest
