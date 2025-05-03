@@ -48,12 +48,10 @@ jobs:
     outputs:
       environment: ${{ steps.identify_env.outputs.environment }}
       image_tag: ${{ steps.identify_env.outputs.image_tag }}
-      
+  
   build-push:
     runs-on: ${{ matrix.runner }}
-    needs:
-      - compile
-      - identify
+    needs: [compile, identify]
     strategy:
       matrix:
         include:
@@ -61,7 +59,7 @@ jobs:
             runner: ubuntu-latest
             platform: linux/amd64
           - arch: arm64
-            runner: ubuntu-24.04-arm
+            runner: ubuntu-latest-arm64
             platform: linux/arm64
     steps:
       - name: Checkout repository
@@ -88,17 +86,42 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ghcr.io/perchbirdd/reslogger2:${{ needs.identify.outputs.image_tag }}
-            ghcr.io/perchbirdd/reslogger2:${{ github.sha }}
+            ghcr.io/perchbirdd/reslogger2:${{ needs.identify.outputs.image_tag }}-${{ matrix.arch }}
+            ghcr.io/perchbirdd/reslogger2:${{ github.sha }}-${{ matrix.arch }}
+
+  create-manifests:
+    runs-on: ubuntu-latest
+    needs: [identify, build-push]
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: https://ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create SHA manifest and push
+        run: |
+          docker manifest create \
+            ghcr.io/perchbirdd/reslogger2:${{ github.sha }} \
+            --amend ghcr.io/perchbirdd/reslogger2:${{ github.sha }}-amd64 \
+            --amend ghcr.io/perchbirdd/reslogger2:${{ github.sha }}-arm64
+          docker manifest push ghcr.io/perchbirdd/reslogger2:${{ github.sha }}
+      - name: Create ${{ needs.identify.outputs.image_tag }} manifest and push
+        run: |
+          docker manifest create \
+            ghcr.io/perchbirdd/reslogger2:${{ needs.identify.outputs.image_tag }} \
+            --amend ghcr.io/perchbirdd/reslogger2:${{ needs.identify.outputs.image_tag }}-amd64 \
+            --amend ghcr.io/perchbirdd/reslogger2:${{ needs.identify.outputs.image_tag }}-arm64
+          docker manifest push ghcr.io/perchbirdd/reslogger2:${{ needs.identify.outputs.image_tag }}
 
   deploy:
     runs-on: ubuntu-latest
-    needs: 
+    needs:
       - compile
       - identify
-      - build-push
+      - create-manifests
     environment: ${{ needs.identify.outputs.environment }}
-    concurrency: deploy-${{ needs.identify.outputs.environment }} 
+    concurrency: deploy-${{ needs.identify.outputs.environment }}
     steps:
       - name: Set Deployment Environment
         id: deployment_env
