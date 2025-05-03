@@ -82,6 +82,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           file: ./src/Dockerfile
           context: .
+          provenance: false
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
