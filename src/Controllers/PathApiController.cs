@@ -22,7 +22,18 @@ public class PathController : Controller
 	[Route("upload")]
 	public async Task Upload()
 	{
-		var content = new StreamReader(Request.Body).ReadToEndAsync().Result;
+		var content = "";
+
+		try
+		{
+			content = new StreamReader(Request.Body).ReadToEndAsync().Result;
+		}
+		catch (Exception e)
+		{
+			_logger.LogDebug("Failed to read request body: {message}", e.Message);
+			return;
+		}
+		
 		var data = Utils.GetUploadDataObjectFromString(content);
 
 		if (data == null || data.Entries == null || data.Entries.Count > 2000)
