@@ -156,7 +156,7 @@ jobs:
           echo "POSTGRES_PASSWORD=${{ secrets.DB_PASS }}" >> $environment.env
           echo "RL2_CONNSTRING=Host=db:5432;Database=rl2;Username=${POSTGRES_USER};Password=${{ secrets.DB_PASS }}" >> $environment.env
           echo "DATA_SOURCE_NAME=postgresql://${POSTGRES_USER}:${{ secrets.DB_PASS }}@db:5432/rl2?sslmode=disable" >> $environment.env
-          echo "Serilog__WriteTo__1__Args__apiKey=${{ secrets.SEQ_API_KEY }}" >> $environment.env
+          echo "FORWARDER_OUTPUT_APIKEY=${{ secrets.SEQ_API_KEY }}" >> $environment.env
       - name: Deploy with Docker Stack
         run: |
           docker context create remote --docker "host=ssh://${{ vars.ENV_USER }}@${{ vars.ENV_HOSTNAME }}"
