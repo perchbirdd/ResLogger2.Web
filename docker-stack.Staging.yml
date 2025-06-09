@@ -29,6 +29,11 @@
       - pg_data:/var/lib/postgresql/data/
     env_file:
       - Staging.env
+      
+  seq_forwarder:
+    image: ghcr.io/perchbirdd/seq-forwarder:latest
+    env_file:
+      - Staging.env
 
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
