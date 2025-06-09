@@ -20,6 +20,7 @@
       - Production.env
     depends_on:
       - db
+      - seq_forwarder
 
   db:
     image: postgres:14.15-alpine3.21
@@ -28,6 +29,13 @@
     volumes:
       - pg_data:/var/lib/postgresql/data/
       - pg_backup:/pg_backup/
+    env_file:
+      - Production.env
+
+  seq_forwarder:
+    image: ghcr.io/perchbirdd/seq-forwarder:latest
+    stdin_open: true
+    tty: true
     env_file:
       - Production.env
 
