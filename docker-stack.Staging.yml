@@ -32,6 +32,8 @@
       
   seq_forwarder:
     image: ghcr.io/perchbirdd/seq-forwarder:latest
+    stdin_open: true
+    tty: true
     env_file:
       - Staging.env
 
