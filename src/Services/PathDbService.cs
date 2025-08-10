@@ -33,31 +33,32 @@ public class PathDbService : IPathDbService
 	private const string PostPrefix = "[p] ";
 
 	private static readonly
-		Func<ServerHashDatabase, QueryParams, PathEntry?> PathQueryCompiled =
+		Func<ServerHashDatabase, QueryParams, IEnumerable<PathEntry?>> PathQueryCompiled =
 			EF.CompileQuery((ServerHashDatabase db, QueryParams q) =>
-				db.Paths.FirstOrDefault(p => p.IndexId == q.IndexId
-				                             && p.FullHash == q.FullHash
-				                             && p.FolderHash == q.FolderHash
-				                             && p.FileHash == q.FileHash));
+				db.Paths
+					.Where(p => p.IndexId == q.IndexId)
+					.Where(p =>  p.FullHash == q.FullHash)
+					.Where(p =>  p.FolderHash == q.FolderHash)
+					.Where(p =>  p.FileHash == q.FileHash));
 	
 	private static readonly
-		Func<ServerHashDatabase, QueryParams, Index1StagingEntry?> Index1QueryCompiled =
+		Func<ServerHashDatabase, QueryParams, IEnumerable<Index1StagingEntry?>> Index1QueryCompiled =
 			EF.CompileQuery((ServerHashDatabase db, QueryParams q) =>
 				db.Index1StagingEntries
 					.Include(i => i.FirstSeen)
 					.Include(i => i.LastSeen)
-					.FirstOrDefault(p => p.IndexId == q.IndexId
-					                     && p.FolderHash == q.FolderHash
-					                     && p.FileHash == q.FileHash));
+					.Where(p => p.IndexId == q.IndexId)
+		            .Where(p => p.FolderHash == q.FolderHash)
+			        .Where(p => p.FileHash == q.FileHash));
 
 	private static readonly
-		Func<ServerHashDatabase, QueryParams, Index2StagingEntry?> Index2QueryCompiled =
+		Func<ServerHashDatabase, QueryParams, IEnumerable<Index2StagingEntry?>> Index2QueryCompiled =
 			EF.CompileQuery((ServerHashDatabase db, QueryParams q) =>
 				db.Index2StagingEntries
 					.Include(i => i.FirstSeen)
 					.Include(i => i.LastSeen)
-					.FirstOrDefault(p => p.IndexId == q.IndexId
-					                     && p.FullHash == q.FullHash));
+					.Where(p => p.IndexId == q.IndexId)
+					.Where(p => p.FullHash == q.FullHash));
 
 
 	public PathDbService(ServerHashDatabase db, IDbLockService dbLockService, ILogger<PathDbService> logger)
@@ -92,7 +93,7 @@ public class PathDbService : IPathDbService
 			//                                               && p.FolderHash == hashes.folderHash
 			//                                               && p.FileHash == hashes.fileHash);
 
-			var pathQuery = PathQueryCompiled(_db, qp);
+			var pathQuery = PathQueryCompiled(_db, qp).FirstOrDefault();
 
 			if (pathQuery != null) // ?
 			{
@@ -117,8 +118,8 @@ public class PathDbService : IPathDbService
 			// 	.Include(i => i.LastSeen)
 			// 	.FirstOrDefault(p => p.IndexId == index
 			// 	                     && p.FullHash == hashes.fullHash);
-			var index1Query = Index1QueryCompiled(_db, qp);
-			var index2Query = Index2QueryCompiled(_db, qp);
+			var index1Query = Index1QueryCompiled(_db, qp).FirstOrDefault();;
+			var index2Query = Index2QueryCompiled(_db, qp).FirstOrDefault();;
 
 			if (index1Query == null && index2Query == null)
 			{
