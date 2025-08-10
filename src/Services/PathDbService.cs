@@ -25,6 +25,11 @@ public class PathDbService : IPathDbService
 		public uint FullHash;
 		public uint FolderHash;
 		public uint FileHash;
+
+		public (uint, uint, uint, uint) ToTuple()
+		{
+			return (IndexId, FullHash, FolderHash, FileHash);
+		}
 	}
 
 	private readonly ServerHashDatabase _db;
@@ -33,34 +38,34 @@ public class PathDbService : IPathDbService
 	private const string PostPrefix = "[p] ";
 
 	private static readonly
-		Func<ServerHashDatabase, QueryParams, IEnumerable<PathEntry?>> PathQueryCompiled =
-			EF.CompileQuery((ServerHashDatabase db, QueryParams q) =>
+		Func<ServerHashDatabase, uint, uint, uint, uint, IEnumerable<PathEntry?>> PathQueryCompiled =
+			EF.CompileQuery((ServerHashDatabase db, uint indexId, uint fullHash, uint folderHash, uint fileHash) =>
 				db.Paths
-					.Where(p => p.IndexId == q.IndexId)
-					.Where(p =>  p.FullHash == q.FullHash)
-					.Where(p =>  p.FolderHash == q.FolderHash)
-					.Where(p =>  p.FileHash == q.FileHash));
+					.Where(p => p.IndexId == indexId)
+					.Where(p => p.FullHash == fullHash)
+					.Where(p => p.FolderHash == folderHash)
+					.Where(p => p.FileHash == fileHash)
+				);
 	
 	private static readonly
-		Func<ServerHashDatabase, QueryParams, IEnumerable<Index1StagingEntry?>> Index1QueryCompiled =
-			EF.CompileQuery((ServerHashDatabase db, QueryParams q) =>
+		Func<ServerHashDatabase, uint, uint, uint, IEnumerable<Index1StagingEntry?>> Index1QueryCompiled =
+			EF.CompileQuery((ServerHashDatabase db, uint indexId, uint folderHash, uint fileHash) =>
 				db.Index1StagingEntries
 					.Include(i => i.FirstSeen)
 					.Include(i => i.LastSeen)
-					.Where(p => p.IndexId == q.IndexId)
-		            .Where(p => p.FolderHash == q.FolderHash)
-			        .Where(p => p.FileHash == q.FileHash));
+					.Where(p => p.IndexId == indexId)
+		            .Where(p => p.FolderHash == folderHash)
+			        .Where(p => p.FileHash == fileHash));
 
 	private static readonly
-		Func<ServerHashDatabase, QueryParams, IEnumerable<Index2StagingEntry?>> Index2QueryCompiled =
-			EF.CompileQuery((ServerHashDatabase db, QueryParams q) =>
+		Func<ServerHashDatabase, uint, uint, IEnumerable<Index2StagingEntry?>> Index2QueryCompiled =
+			EF.CompileQuery((ServerHashDatabase db, uint indexId, uint fullHash) =>
 				db.Index2StagingEntries
 					.Include(i => i.FirstSeen)
 					.Include(i => i.LastSeen)
-					.Where(p => p.IndexId == q.IndexId)
-					.Where(p => p.FullHash == q.FullHash));
-
-
+					.Where(p => p.IndexId == indexId)
+					.Where(p => p.FullHash == fullHash));
+	
 	public PathDbService(ServerHashDatabase db, IDbLockService dbLockService, ILogger<PathDbService> logger)
 	{
 		_db = db;
@@ -88,12 +93,12 @@ public class PathDbService : IPathDbService
 				FolderHash = hashes.folderHash
 			};
 			
-			// var pathQuery = _db.Paths.FirstOrDefault(p => p.IndexId == index
-			//                                               && p.FullHash == hashes.fullHash
-			//                                               && p.FolderHash == hashes.folderHash
-			//                                               && p.FileHash == hashes.fileHash);
+			// var pathQuery = _db.Paths.FirstOrDefault(p => p.IndexId == qp.IndexId
+			//                                               && p.FullHash == qp.FullHash
+			//                                               && p.FolderHash == qp.FolderHash
+			//                                               && p.FileHash == qp.FileHash);
 
-			var pathQuery = PathQueryCompiled(_db, qp).FirstOrDefault();
+			var pathQuery = PathQueryCompiled(_db, index, hashes.fullHash, hashes.folderHash, hashes.fileHash).FirstOrDefault();
 
 			if (pathQuery != null) // ?
 			{
@@ -118,8 +123,8 @@ public class PathDbService : IPathDbService
 			// 	.Include(i => i.LastSeen)
 			// 	.FirstOrDefault(p => p.IndexId == index
 			// 	                     && p.FullHash == hashes.fullHash);
-			var index1Query = Index1QueryCompiled(_db, qp).FirstOrDefault();;
-			var index2Query = Index2QueryCompiled(_db, qp).FirstOrDefault();;
+			var index1Query = Index1QueryCompiled(_db, index, hashes.folderHash, hashes.fileHash).FirstOrDefault();;
+			var index2Query = Index2QueryCompiled(_db, index, hashes.fullHash).FirstOrDefault();;
 
 			if (index1Query == null && index2Query == null)
 			{
