@@ -19,10 +19,46 @@ public class PathDbService : IPathDbService
 		public bool WasInIndex2;
 	}
 
+	private struct QueryParams
+	{
+		public uint IndexId;
+		public uint FullHash;
+		public uint FolderHash;
+		public uint FileHash;
+	}
+
 	private readonly ServerHashDatabase _db;
 	private readonly IDbLockService _dbLockService;
 	private readonly ILogger<PathDbService> _logger;
 	private const string PostPrefix = "[p] ";
+
+	private static readonly
+		Func<ServerHashDatabase, QueryParams, PathEntry?> PathQueryCompiled =
+			EF.CompileQuery((ServerHashDatabase db, QueryParams q) =>
+				db.Paths.FirstOrDefault(p => p.IndexId == q.IndexId
+				                             && p.FullHash == q.FullHash
+				                             && p.FolderHash == q.FolderHash
+				                             && p.FileHash == q.FileHash));
+	
+	private static readonly
+		Func<ServerHashDatabase, QueryParams, Index1StagingEntry?> Index1QueryCompiled =
+			EF.CompileQuery((ServerHashDatabase db, QueryParams q) =>
+				db.Index1StagingEntries
+					.Include(i => i.FirstSeen)
+					.Include(i => i.LastSeen)
+					.FirstOrDefault(p => p.IndexId == q.IndexId
+					                     && p.FolderHash == q.FolderHash
+					                     && p.FileHash == q.FileHash));
+
+	private static readonly
+		Func<ServerHashDatabase, QueryParams, Index2StagingEntry?> Index2QueryCompiled =
+			EF.CompileQuery((ServerHashDatabase db, QueryParams q) =>
+				db.Index2StagingEntries
+					.Include(i => i.FirstSeen)
+					.Include(i => i.LastSeen)
+					.FirstOrDefault(p => p.IndexId == q.IndexId
+					                     && p.FullHash == q.FullHash));
+
 
 	public PathDbService(ServerHashDatabase db, IDbLockService dbLockService, ILogger<PathDbService> logger)
 	{
@@ -43,10 +79,20 @@ public class PathDbService : IPathDbService
 		{
 			var hashes = Utils.CalcAllHashes(path.ToLower());
 			var index = Utils.GetCategoryIdForPath(path);
-			var pathQuery = _db.Paths.FirstOrDefault(p => p.IndexId == index
-			                                              && p.FullHash == hashes.fullHash
-			                                              && p.FolderHash == hashes.folderHash
-			                                              && p.FileHash == hashes.fileHash);
+			var qp = new QueryParams
+			{
+				IndexId = index,
+				FullHash = hashes.fullHash,
+				FileHash = hashes.fileHash,
+				FolderHash = hashes.folderHash
+			};
+			
+			// var pathQuery = _db.Paths.FirstOrDefault(p => p.IndexId == index
+			//                                               && p.FullHash == hashes.fullHash
+			//                                               && p.FolderHash == hashes.folderHash
+			//                                               && p.FileHash == hashes.fileHash);
+
+			var pathQuery = PathQueryCompiled(_db, qp);
 
 			if (pathQuery != null) // ?
 			{
@@ -60,17 +106,19 @@ public class PathDbService : IPathDbService
 				continue;
 			}
 
-			var index1Query = _db.Index1StagingEntries
-				.Include(i => i.FirstSeen)
-				.Include(i => i.LastSeen)
-				.FirstOrDefault(p => p.IndexId == index
-				                     && p.FolderHash == hashes.folderHash
-				                     && p.FileHash == hashes.fileHash);
-			var index2Query = _db.Index2StagingEntries
-				.Include(i => i.FirstSeen)
-				.Include(i => i.LastSeen)
-				.FirstOrDefault(p => p.IndexId == index
-				                     && p.FullHash == hashes.fullHash);
+			// var index1Query = _db.Index1StagingEntries
+			// 	.Include(i => i.FirstSeen)
+			// 	.Include(i => i.LastSeen)
+			// 	.FirstOrDefault(p => p.IndexId == index
+			// 	                     && p.FolderHash == hashes.folderHash
+			// 	                     && p.FileHash == hashes.fileHash);
+			// var index2Query = _db.Index2StagingEntries
+			// 	.Include(i => i.FirstSeen)
+			// 	.Include(i => i.LastSeen)
+			// 	.FirstOrDefault(p => p.IndexId == index
+			// 	                     && p.FullHash == hashes.fullHash);
+			var index1Query = Index1QueryCompiled(_db, qp);
+			var index2Query = Index2QueryCompiled(_db, qp);
 
 			if (index1Query == null && index2Query == null)
 			{
