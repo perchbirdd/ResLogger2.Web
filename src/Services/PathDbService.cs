@@ -19,11 +19,53 @@ public class PathDbService : IPathDbService
 		public bool WasInIndex2;
 	}
 
+	private struct QueryParams
+	{
+		public uint IndexId;
+		public uint FullHash;
+		public uint FolderHash;
+		public uint FileHash;
+
+		public (uint, uint, uint, uint) ToTuple()
+		{
+			return (IndexId, FullHash, FolderHash, FileHash);
+		}
+	}
+
 	private readonly ServerHashDatabase _db;
 	private readonly IDbLockService _dbLockService;
 	private readonly ILogger<PathDbService> _logger;
 	private const string PostPrefix = "[p] ";
 
+	private static readonly
+		Func<ServerHashDatabase, uint, uint, uint, uint, IEnumerable<PathEntry?>> PathQueryCompiled =
+			EF.CompileQuery((ServerHashDatabase db, uint indexId, uint fullHash, uint folderHash, uint fileHash) =>
+				db.Paths
+					.Where(p => p.IndexId == indexId)
+					.Where(p => p.FullHash == fullHash)
+					.Where(p => p.FolderHash == folderHash)
+					.Where(p => p.FileHash == fileHash)
+				);
+	
+	private static readonly
+		Func<ServerHashDatabase, uint, uint, uint, IEnumerable<Index1StagingEntry?>> Index1QueryCompiled =
+			EF.CompileQuery((ServerHashDatabase db, uint indexId, uint folderHash, uint fileHash) =>
+				db.Index1StagingEntries
+					.Include(i => i.FirstSeen)
+					.Include(i => i.LastSeen)
+					.Where(p => p.IndexId == indexId)
+		            .Where(p => p.FolderHash == folderHash)
+			        .Where(p => p.FileHash == fileHash));
+
+	private static readonly
+		Func<ServerHashDatabase, uint, uint, IEnumerable<Index2StagingEntry?>> Index2QueryCompiled =
+			EF.CompileQuery((ServerHashDatabase db, uint indexId, uint fullHash) =>
+				db.Index2StagingEntries
+					.Include(i => i.FirstSeen)
+					.Include(i => i.LastSeen)
+					.Where(p => p.IndexId == indexId)
+					.Where(p => p.FullHash == fullHash));
+	
 	public PathDbService(ServerHashDatabase db, IDbLockService dbLockService, ILogger<PathDbService> logger)
 	{
 		_db = db;
@@ -43,10 +85,15 @@ public class PathDbService : IPathDbService
 		{
 			var hashes = Utils.CalcAllHashes(path.ToLower());
 			var index = Utils.GetCategoryIdForPath(path);
-			var pathQuery = _db.Paths.FirstOrDefault(p => p.IndexId == index
-			                                              && p.FullHash == hashes.fullHash
-			                                              && p.FolderHash == hashes.folderHash
-			                                              && p.FileHash == hashes.fileHash);
+			var qp = new QueryParams
+			{
+				IndexId = index,
+				FullHash = hashes.fullHash,
+				FileHash = hashes.fileHash,
+				FolderHash = hashes.folderHash
+			};
+			
+			var pathQuery = PathQueryCompiled(_db, index, hashes.fullHash, hashes.folderHash, hashes.fileHash).FirstOrDefault();
 
 			if (pathQuery != null) // ?
 			{
@@ -59,18 +106,9 @@ public class PathDbService : IPathDbService
 				}
 				continue;
 			}
-
-			var index1Query = _db.Index1StagingEntries
-				.Include(i => i.FirstSeen)
-				.Include(i => i.LastSeen)
-				.FirstOrDefault(p => p.IndexId == index
-				                     && p.FolderHash == hashes.folderHash
-				                     && p.FileHash == hashes.fileHash);
-			var index2Query = _db.Index2StagingEntries
-				.Include(i => i.FirstSeen)
-				.Include(i => i.LastSeen)
-				.FirstOrDefault(p => p.IndexId == index
-				                     && p.FullHash == hashes.fullHash);
+			
+			var index1Query = Index1QueryCompiled(_db, index, hashes.folderHash, hashes.fileHash).FirstOrDefault();;
+			var index2Query = Index2QueryCompiled(_db, index, hashes.fullHash).FirstOrDefault();;
 
 			if (index1Query == null && index2Query == null)
 			{
