@@ -93,11 +93,6 @@ public class PathDbService : IPathDbService
 				FolderHash = hashes.folderHash
 			};
 			
-			// var pathQuery = _db.Paths.FirstOrDefault(p => p.IndexId == qp.IndexId
-			//                                               && p.FullHash == qp.FullHash
-			//                                               && p.FolderHash == qp.FolderHash
-			//                                               && p.FileHash == qp.FileHash);
-
 			var pathQuery = PathQueryCompiled(_db, index, hashes.fullHash, hashes.folderHash, hashes.fileHash).FirstOrDefault();
 
 			if (pathQuery != null) // ?
@@ -111,18 +106,7 @@ public class PathDbService : IPathDbService
 				}
 				continue;
 			}
-
-			// var index1Query = _db.Index1StagingEntries
-			// 	.Include(i => i.FirstSeen)
-			// 	.Include(i => i.LastSeen)
-			// 	.FirstOrDefault(p => p.IndexId == index
-			// 	                     && p.FolderHash == hashes.folderHash
-			// 	                     && p.FileHash == hashes.fileHash);
-			// var index2Query = _db.Index2StagingEntries
-			// 	.Include(i => i.FirstSeen)
-			// 	.Include(i => i.LastSeen)
-			// 	.FirstOrDefault(p => p.IndexId == index
-			// 	                     && p.FullHash == hashes.fullHash);
+			
 			var index1Query = Index1QueryCompiled(_db, index, hashes.folderHash, hashes.fileHash).FirstOrDefault();;
 			var index2Query = Index2QueryCompiled(_db, index, hashes.fullHash).FirstOrDefault();;
 
