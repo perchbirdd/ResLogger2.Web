@@ -1,15 +1,4 @@
-﻿services:
-  
-  caddy:
-    image: caddy:latest
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - caddy_data:/data
-      - caddy_config:/config
-    command: "caddy reverse-proxy --from rl2.perchbird.dev --to http://web:80"
-  
+services:
   web:
     image: ghcr.io/perchbirdd/reslogger2:latest
     ports:
@@ -18,9 +7,18 @@
       - web_data:/web_data/
     env_file:
       - Production.env
-    depends_on:
-      - db
-      - seq_forwarder
+    networks:
+      - default
+      - proxy_net
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+        monitor: 15s
 
   db:
     image: postgres:18.0-alpine3.22
@@ -31,6 +29,15 @@
       - pg_backup:/pg_backup/
     env_file:
       - Production.env
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+        monitor: 15s
 
   seq_forwarder:
     image: ghcr.io/perchbirdd/seq-forwarder:latest
@@ -38,29 +45,37 @@
     tty: true
     env_file:
       - Production.env
-
-  node_exporter:
-    image: quay.io/prometheus/node-exporter:latest
-    command:
-      - '--path.rootfs=/host'
-    ports:
-      - "9100:9100"
-    restart: unless-stopped
-    volumes:
-      - '/:/host:ro,rslave'
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+        monitor: 15s
 
   pg_exporter:
     image: quay.io/prometheuscommunity/postgres-exporter
     ports:
       - "9187:9187"
-    depends_on:
-      - db
     env_file:
       - Production.env
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+        monitor: 15s
+
+networks:
+  proxy_net:
+    external: true
 
 volumes:
   web_data:
   pg_data:
   pg_backup:
-  caddy_data:
-  caddy_config:
