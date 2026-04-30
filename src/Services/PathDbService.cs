@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using ResLogger2.Common;
@@ -32,6 +33,7 @@ public class PathDbService : IPathDbService
 		}
 	}
 
+	private readonly ConcurrentDictionary<string, bool> _pathCache;
 	private readonly ServerHashDatabase _db;
 	private readonly IDbLockService _dbLockService;
 	private readonly ILogger<PathDbService> _logger;
@@ -71,6 +73,7 @@ public class PathDbService : IPathDbService
 		_db = db;
 		_logger = logger;
 		_dbLockService = dbLockService;
+		_pathCache = new ConcurrentDictionary<string, bool>();
 	}
 
 	private void ProcessInternal(ref ProcessingTotals totals, IEnumerable<string> data, bool isPost)
@@ -83,6 +86,13 @@ public class PathDbService : IPathDbService
 
 		foreach (var path in data)
 		{
+			if (_pathCache.ContainsKey(path))
+			{
+				// don't run anything, we've seen this before
+				existPaths++;
+				continue;
+			}
+			
 			var hashes = Utils.CalcAllHashes(path.ToLower());
 			var index = Utils.GetCategoryIdForPath(path);
 			var qp = new QueryParams
@@ -168,6 +178,7 @@ public class PathDbService : IPathDbService
 				FirstSeen = earliest,
 				LastSeen = latest,
 			});
+			_pathCache[path] = true;
 			_logger.LogInformation("{post}new: {path}", post, path);
 			newPaths++;
 		}
