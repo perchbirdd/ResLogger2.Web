@@ -13,6 +13,7 @@ public class PathDbService : IPathDbService
 {
 	private struct ProcessingTotals
 	{
+		public int CachedPaths;
 		public int ExistPaths;
 		public int NewPaths;
 		public int PostProcessed;
@@ -77,7 +78,8 @@ public class PathDbService : IPathDbService
 	}
 
 	private void ProcessInternal(ref ProcessingTotals totals, IEnumerable<string> data, bool isPost)
-	{
+    {
+        var cached = 0;
 		var newPaths = 0;
 		var existPaths = 0;
 		var wasInIndex1 = false;
@@ -90,6 +92,7 @@ public class PathDbService : IPathDbService
 			{
 				// don't run anything, we've seen this before
 				existPaths++;
+				cached++;
 				continue;
 			}
 			
@@ -183,6 +186,7 @@ public class PathDbService : IPathDbService
 			newPaths++;
 		}
 
+		totals.CachedPaths += cached;
 		totals.ExistPaths += existPaths;
 		totals.NewPaths += newPaths;
 		totals.WasInIndex1 |= wasInIndex1;
@@ -235,7 +239,7 @@ public class PathDbService : IPathDbService
 		}
 
 		var time = stopwatch.ElapsedMilliseconds;
-		_logger.LogInformation("request: {exist} exist, {new} new, {post} from post, index1 {index1} index2 {index2} time {time}", totals.ExistPaths, totals.NewPaths, totals.PostProcessed, totals.WasInIndex1, totals.WasInIndex2, time);
+		_logger.LogInformation("request: {exist} exist, {new} new, {cached} cached, index1 {index1} index2 {index2} time {time}", totals.ExistPaths, totals.NewPaths, totals.CachedPaths, totals.WasInIndex1, totals.WasInIndex2, time);
 		return success;
 	}
 
