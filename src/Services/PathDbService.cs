@@ -98,19 +98,13 @@ public class PathDbService : IPathDbService
 			
 			var hashes = Utils.CalcAllHashes(path.ToLower());
 			var index = Utils.GetCategoryIdForPath(path);
-			var qp = new QueryParams
-			{
-				IndexId = index,
-				FullHash = hashes.fullHash,
-				FileHash = hashes.fileHash,
-				FolderHash = hashes.folderHash
-			};
 			
 			var pathQuery = PathQueryCompiled(_db, index, hashes.fullHash, hashes.folderHash, hashes.fileHash).FirstOrDefault();
 
 			if (pathQuery != null) // ?
 			{
 				existPaths++;
+				_pathCache[path] = true;
 				if (pathQuery.Path == null && path != null)
 				{
 					pathQuery.Path = path;
@@ -129,6 +123,7 @@ public class PathDbService : IPathDbService
 				continue;
 			}
 			existPaths++;
+			_pathCache[path] = true;
 
 			GameVersion earliest = null;
 			GameVersion latest = null;
@@ -181,7 +176,6 @@ public class PathDbService : IPathDbService
 				FirstSeen = earliest,
 				LastSeen = latest,
 			});
-			_pathCache[path] = true;
 			_logger.LogInformation("{post}new: {path}", post, path);
 			newPaths++;
 		}
