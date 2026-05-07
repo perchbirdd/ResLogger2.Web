@@ -28,6 +28,7 @@ builder.Services.AddDbContextPool<ServerHashDatabase>(
 	opt => opt
 		.UseNpgsql(Environment.GetEnvironmentVariable("RL2_CONNSTRING")));
 builder.Services.AddSingleton<IDbLockService, DbLockService>();
+builder.Services.AddSingleton<IPathCacheService, PathCacheService>();
 builder.Services.AddScoped<IPathDbService, PathDbService>();
 builder.Services.AddScoped<IThaliakService, ThaliakService>();
 

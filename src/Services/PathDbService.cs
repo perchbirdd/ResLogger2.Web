@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using ResLogger2.Common;
@@ -34,7 +33,7 @@ public class PathDbService : IPathDbService
 		}
 	}
 
-	private readonly ConcurrentDictionary<string, bool> _pathCache;
+	private readonly IPathCacheService _pathCache;
 	private readonly ServerHashDatabase _db;
 	private readonly IDbLockService _dbLockService;
 	private readonly ILogger<PathDbService> _logger;
@@ -69,12 +68,12 @@ public class PathDbService : IPathDbService
 					.Where(p => p.IndexId == indexId)
 					.Where(p => p.FullHash == fullHash));
 	
-	public PathDbService(ServerHashDatabase db, IDbLockService dbLockService, ILogger<PathDbService> logger)
+	public PathDbService(ServerHashDatabase db, IDbLockService dbLockService, IPathCacheService pathCache, ILogger<PathDbService> logger)
 	{
 		_db = db;
 		_logger = logger;
 		_dbLockService = dbLockService;
-		_pathCache = new ConcurrentDictionary<string, bool>();
+		_pathCache = pathCache;
 	}
 
 	private void ProcessInternal(ref ProcessingTotals totals, IEnumerable<string> data, bool isPost)
@@ -88,7 +87,7 @@ public class PathDbService : IPathDbService
 
 		foreach (var path in data)
 		{
-			if (_pathCache.ContainsKey(path))
+			if (_pathCache.Contains(path))
 			{
 				// don't run anything, we've seen this before
 				existPaths++;
@@ -104,7 +103,7 @@ public class PathDbService : IPathDbService
 			if (pathQuery != null) // ?
 			{
 				existPaths++;
-				_pathCache[path] = true;
+				_pathCache.Add(path);
 				if (pathQuery.Path == null && path != null)
 				{
 					pathQuery.Path = path;
