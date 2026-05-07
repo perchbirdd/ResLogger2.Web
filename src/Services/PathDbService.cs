@@ -122,7 +122,7 @@ public class PathDbService : IPathDbService
 				continue;
 			}
 			existPaths++;
-			_pathCache[path] = true;
+			_pathCache.Add(path);
 
 			GameVersion earliest = null;
 			GameVersion latest = null;
