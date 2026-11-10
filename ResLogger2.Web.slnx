@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="deps/ResLogger2.Common/src/ResLogger2.Common.csproj" />
+  <Project Path="src/ResLogger2.Web.csproj" />
+</Solution>
